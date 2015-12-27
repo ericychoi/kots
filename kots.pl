@@ -7,8 +7,8 @@ use strict;
 use warnings;
 
 # midnight = PST 7am
-my $yesterday = DateTime->now->subtract(days => 1);
-my $date = $yesterday->strftime("%y%m%d");
+#my $yesterday = DateTime->now->subtract(days => 1);
+my $date = DataTime->now->strftime("%y%m%d");
 my $host = '192.168.2.100:9091';
 
 run_tranmission('무한도전');
