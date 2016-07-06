@@ -70,7 +70,7 @@ func main() {
 
 			logger.Printf("found link: %s => %s\n", rawHTML, href)
 
-			err = bow.Open(fmt.Sprintf("%s/%s", baseurl, href))
+			err = bow.Open(href)
 			if err != nil {
 				panic(err)
 			}
