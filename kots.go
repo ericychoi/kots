@@ -9,9 +9,12 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/headzoo/surf"
+	"github.com/headzoo/surf/browser"
 )
 
 const baseurl = `http://www.tosarang2.net`
+
+var logger *log.Logger
 
 // args:
 // initial search fragment "무한도전"
@@ -19,10 +22,9 @@ const baseurl = `http://www.tosarang2.net`
 
 // output to stdout: magnet link
 // http://www.tosarang2.net/bbs/magnet:?xt=urn:btih:61A35E62EFED0544ACACC2F1E3FF4DB3DC6B9A36&dn=무한도전.E456.151128.HDTV.H264.720p-WITH
-
 func main() {
 	bow := surf.NewBrowser()
-	logger := log.New(os.Stderr, "kots: ", log.Lshortfile)
+	logger = log.New(os.Stderr, "kots: ", log.Lshortfile)
 	err := bow.Open(baseurl)
 	if err != nil {
 		panic(err)
@@ -40,7 +42,12 @@ func main() {
 	// <a href="http://www.tosarang2.net/bbs/board.php?bo_table=torrent_kortv_ent" title="한국TV > 예능/오락">예능</a>
 	logger.Println("found page: " + bow.Title())
 
-	err = bow.Click("a[title='한국TV > 예능/오락']")
+	clickTitle(bow, validLink, validMagnetLink, "a[title='한국TV > 예능/오락']", show)
+	clickTitle(bow, validLink, validMagnetLink, "a[title='한국TV > 드라마']", show)
+}
+
+func clickTitle(bow *browser.Browser, validLink, validMagnetLink *regexp.Regexp, title, show string) {
+	err := bow.Click(title)
 	if err != nil {
 		panic(err)
 	}
