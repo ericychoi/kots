@@ -18,7 +18,7 @@ my $host = '192.168.2.100:9091';
 
 GetOptions( 'date=s' => \$date );
 
-run_tranmission('무한도전', "./kots -regex '무한도전\\..+\\.$date\\.HDTV\\.H264\\.720p-Venus' -show '무한도전'");
+run_tranmission('무한도전', "./kots -regex '무한도전\\..+\\.$date\\.HDTV\\.H264\\.720p-\\w+' -show '무한도전'");
 run_tranmission('런닝맨');
 run_tranmission('냉장고를');
 run_tranmission('비정상회담');
@@ -41,7 +41,7 @@ run_tranmission('슈가맨', "./kots -regex '슈가맨.+\\.$date\\.720p-NEXT' -s
 
 sub run_tranmission {
   my ($show, $cmd) = @_;
-  my $magnet_cmd = $cmd || "./kots -regex '$show.+$date\.HDTV\.H264\.720p-NEXT' -show $show";
+  my $magnet_cmd = $cmd || "./kots -regex '$show.+\\.$date\\.720p-NEXT' -show $show";
   my $encoded_cmd = encode("utf8", $magnet_cmd);
   print +localtime().": running $encoded_cmd\n";
   my $magnet_link = `$encoded_cmd`;
