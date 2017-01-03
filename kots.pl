@@ -43,7 +43,7 @@ run_tranmission('K팝스타');
 
 sub run_tranmission {
   my ($show, $cmd) = @_;
-  my $magnet_cmd = $cmd || "./kots -regex '$show.+\\.$date\\..*720p-NEXT' -show $show";
+  my $magnet_cmd = $cmd || "./kots -regex '$show.+\\.$date\\..*720p-NEXT' -show '$show $date'";
   my $encoded_cmd = encode("utf8", $magnet_cmd);
   print +localtime().": running $encoded_cmd\n";
   my $magnet_link = `$encoded_cmd`;

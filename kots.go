@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"regexp"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/headzoo/surf/browser"
 )
 
-const baseurl = `http://www.tosarang2.net`
+const baseurl = `https://torrentkim5.net/bbs`
 
 var logger *log.Logger
 
@@ -25,78 +26,53 @@ var logger *log.Logger
 func main() {
 	bow := surf.NewBrowser()
 	logger = log.New(os.Stderr, "kots: ", log.Lshortfile)
-	err := bow.Open(baseurl)
-	if err != nil {
-		panic(err)
-	}
-
 	var fileRegex, show string
 
 	flag.StringVar(&fileRegex, "regex", "INVALID REGEX?!!", `regexp for the file: ^무한도전.+151226\.HDTV\.H264\.720p-WITH$`)
 	flag.StringVar(&show, "show", "INVALID REGEX?!!", `show name that is used for initial search: 무한도전`)
 	flag.Parse()
 
-	validLink := regexp.MustCompile(fileRegex)
-	validMagnetLink := regexp.MustCompile(`magnet:\?xt=urn:btih:\w+`)
+	encodedKeyword := url.QueryEscape(show)
+	err := bow.Open(baseurl + `/s.php?k=` + encodedKeyword)
+	if err != nil {
+		panic(err)
+	}
 
-	// <a href="http://www.tosarang2.net/bbs/board.php?bo_table=torrent_kortv_ent" title="한국TV > 예능/오락">예능</a>
+	validLink := regexp.MustCompile(fileRegex)
+	validMagnetLink := regexp.MustCompile(`Mag_dn\('([A-F0-9]{40})'\)`)
+
 	logger.Println("found page: " + bow.Title())
 
-	clickTitle(bow, validLink, validMagnetLink, "a[title='한국TV > 예능/오락']", show)
-	clickTitle(bow, validLink, validMagnetLink, "a[title='한국TV > 드라마']", show)
+	search(bow, validLink, validMagnetLink, show)
 }
 
-func clickTitle(bow *browser.Browser, validLink, validMagnetLink *regexp.Regexp, title, show string) {
-	err := bow.Click(title)
-	if err != nil {
-		panic(err)
-	}
-
-	searchFm, err := bow.Form("form#fsearch")
-	if err != nil {
-		panic(err)
-	}
-
-	searchFm.Input("stx", show)
-	err = searchFm.Submit()
-	if err != nil {
-		panic(err)
-	}
-
-	bow.Dom().Find("div#bo_l_list table tbody tr td.td_subject a").Each(func(_ int, s *goquery.Selection) {
+func search(bow *browser.Browser, validLink, validMagnetLink *regexp.Regexp, show string) {
+	bow.Dom().Find("table.board_list tbody tr.bg1 td.subject a").Each(func(_ int, s *goquery.Selection) {
 		rawHTML, err := s.Html()
 		if err != nil {
 			panic(err)
 		}
 
 		if validLink.MatchString(rawHTML) {
-			href, ok := s.Attr("href")
-			if !ok {
-				logger.Fatalf("could not find href from anchor\n")
-			}
+			logger.Printf("found link: %s\n", rawHTML)
 
-			logger.Printf("found link: %s => %s\n", rawHTML, href)
-
-			err = bow.Open(href)
-			if err != nil {
-				panic(err)
-			}
-
-			bow.Dom().Find("div.bo_v_file a").Each(func(_ int, s *goquery.Selection) {
-				rawHTML, err := s.Html()
-				if err != nil {
-					panic(err)
+			// get back to a couple of siblings
+			s.Parent().Prev().Prev().Children().Each(func(_ int, s *goquery.Selection) {
+				href, ok := s.Attr("href")
+				if !ok {
+					logger.Fatalf("could not find href from anchor\n")
 				}
 
-				if validMagnetLink.MatchString(rawHTML) {
-					href, ok := s.Attr("href")
-					if !ok {
-						logger.Fatalf("could not find href from anchor\n")
-					}
-
-					logger.Printf("found magnet link: %s => %s\n", rawHTML, href)
-					fmt.Printf("%s\n", href)
+				results := validMagnetLink.FindStringSubmatch(href)
+				if results == nil {
+					logger.Fatalf("couldn't find match for %s", href)
 				}
+
+				//javascript:Mag_dn('72A3F8560D8FBB124F782035D01F961E3A8068AA')
+				logger.Printf("found magnet link: %s\n", results[1])
+
+				magnetLink := fmt.Sprintf(`magnet:?xt=urn:btih:%s`, results[1])
+				fmt.Printf("%s\n", magnetLink)
 			})
 		}
 	})
