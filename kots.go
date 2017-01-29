@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/headzoo/surf"
@@ -42,38 +43,60 @@ func main() {
 	validMagnetLink := regexp.MustCompile(`Mag_dn\('([A-F0-9]{40})'\)`)
 
 	logger.Println("found page: " + bow.Title())
-
 	search(bow, validLink, validMagnetLink, show)
 }
 
 func search(bow *browser.Browser, validLink, validMagnetLink *regexp.Regexp, show string) {
-	bow.Dom().Find("table.board_list tbody tr.bg1 td.subject a").Each(func(_ int, s *goquery.Selection) {
+	bow.Dom().Find("table.board_list tbody tr.bg1 td.subject a").EachWithBreak(func(_ int, s *goquery.Selection) bool {
+		found := false
 		rawHTML, err := s.Html()
 		if err != nil {
-			panic(err)
+			logger.Printf("couldn't find html: %s\n", err)
+			return true
 		}
-
 		if validLink.MatchString(rawHTML) {
 			logger.Printf("found link: %s\n", rawHTML)
-
-			// get back to a couple of siblings
-			s.Parent().Prev().Prev().Children().Each(func(_ int, s *goquery.Selection) {
-				href, ok := s.Attr("href")
-				if !ok {
-					logger.Fatalf("could not find href from anchor\n")
+			s.Parent().Prev().Children().EachWithBreak(func(_ int, s *goquery.Selection) bool {
+				scoreHTML, err := s.Html()
+				if err != nil {
+					logger.Printf("could not find score: %s\n", err)
+					return true
+				}
+				score, err := strconv.Atoi(scoreHTML)
+				if err != nil {
+					logger.Printf("score HTML %s not an int: %s\n", scoreHTML, err)
+					return true
+				}
+				if score < 0 {
+					logger.Printf("negative score %d found\n", score)
+					return true
 				}
 
-				results := validMagnetLink.FindStringSubmatch(href)
-				if results == nil {
-					logger.Fatalf("couldn't find match for %s", href)
-				}
+				s.Parent().Prev().ChildrenFiltered("a").EachWithBreak(func(_ int, s *goquery.Selection) bool {
+					href, ok := s.Attr("href")
+					if !ok {
+						logger.Printf("could not find href from anchor\n")
+						return true
+					}
 
-				//javascript:Mag_dn('72A3F8560D8FBB124F782035D01F961E3A8068AA')
-				logger.Printf("found magnet link: %s\n", results[1])
+					results := validMagnetLink.FindStringSubmatch(href)
+					if results == nil {
+						logger.Printf("couldn't find match for %s", href)
+						return true
+					}
 
-				magnetLink := fmt.Sprintf(`magnet:?xt=urn:btih:%s`, results[1])
-				fmt.Printf("%s\n", magnetLink)
+					//javascript:Mag_dn('72A3F8560D8FBB124F782035D01F961E3A8068AA')
+					logger.Printf("found magnet link: %s\n", results[1])
+
+					magnetLink := fmt.Sprintf(`magnet:?xt=urn:btih:%s`, results[1])
+					fmt.Printf("%s\n", magnetLink)
+					found = true
+					return false
+				})
+				return false
 			})
+			return !found
 		}
+		return !found
 	})
 }
