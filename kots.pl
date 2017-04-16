@@ -24,6 +24,7 @@ run_tranmission('아는 형님');
 run_tranmission('냉장고를');
 #run_tranmission('비정상회담');
 run_tranmission('너의 목소리가');
+run_tranmission('내 집이 나타났다');
 #run_tranmission('개그콘서트');
 run_tranmission('마이 리틀 텔레비전');
 run_tranmission('꽃보다 청춘');
@@ -40,10 +41,19 @@ run_tranmission('해피 투게더');
 run_tranmission('슬램덩크');
 run_tranmission('미운 우리 새끼');
 run_tranmission('K팝스타');
+#run_tranmission('골든 탬버린');
+run_tranmission('도깨비');
+run_tranmission('한끼줍쇼');
+run_tranmission('뭉쳐야 뜬다');
+run_tranmission('힘쎈여자 도봉순');
+run_tranmission('문제적 남자');
+run_tranmission('윤식당');
+run_tranmission('영재 발굴단', "./kots -regex '$date\.영재 발굴단.+' -show '영재 발굴단'");
+
 
 sub run_tranmission {
   my ($show, $cmd) = @_;
-  my $magnet_cmd = $cmd || "./kots -regex '$show.+\\.$date\\..*720p-NEXT' -show '$show $date'";
+  my $magnet_cmd = $cmd || "./kots -regex '.*$show.+$date\\..*720p-NEXT' -show '$show $date'";
   my $encoded_cmd = encode("utf8", $magnet_cmd);
   print +localtime().": running $encoded_cmd\n";
   my $magnet_link = `$encoded_cmd`;
